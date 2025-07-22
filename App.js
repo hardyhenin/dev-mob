@@ -1,25 +1,56 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar } from 'react-native'; // Importez StatusBar
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Calculatrice');
   const [display, setDisplay] = useState('');
+  const [isResultDisplayed, setIsResultDisplayed] = useState(false);
 
   const handlePress = (value) => {
-    if (value === 'C') return setDisplay('');
+    if (value === 'C') {
+      setDisplay('');
+      setIsResultDisplayed(false);
+      return;
+    }
+
     if (value === '=') {
       try {
-        const result = eval(display.replace('×', '*').replace('÷', '/'));
+        const expression = display.replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '.');
+        const result = eval(expression);
         setDisplay(result.toString());
+        setIsResultDisplayed(true);
       } catch (e) {
         setDisplay('Erreur');
+        setIsResultDisplayed(true);
       }
-    } else if (value === '⌫') {
+      return;
+    }
+
+    if (value === '⌫') {
       setDisplay(display.slice(0, -1));
-    } else if (value === ',') {
-      if (!display.includes('.')) {
+      setIsResultDisplayed(false);
+      return;
+    }
+
+    if (value === ',') {
+      if (isResultDisplayed || display === '') {
+        setDisplay('0.');
+      } else if (!display.includes('.')) {
         setDisplay(display + '.');
       }
+      setIsResultDisplayed(false);
+      return;
+    }
+
+    const isOperator = ['+', '-', '×', '÷', '%'].includes(value);
+
+    if (isResultDisplayed) {
+      if (isOperator) {
+        setDisplay(display + value);
+      } else {
+        setDisplay(value);
+      }
+      setIsResultDisplayed(false);
     } else {
       setDisplay(display + value);
     }
@@ -36,9 +67,9 @@ export default function App() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}> {/* Appliquez un style à SafeAreaView si nécessaire */}
-      <StatusBar barStyle="light-content" backgroundColor="#000" /> {/* Personnalisez la barre de statut */}
-      <View style={styles.container}> {/* Encapsulez le contenu principal dans un nouveau View */}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <View style={styles.container}>
         <View style={styles.tabs}>
           {tabs.map(tab => (
             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
@@ -48,7 +79,7 @@ export default function App() {
         </View>
 
         <View style={styles.display}>
-          <Text style={styles.displayText}>{display}</Text>
+          <Text style={styles.displayText} numberOfLines={1} adjustsFontSizeToFit>{display || '0'}</Text>
         </View>
 
         <View style={styles.keyboard}>
@@ -57,10 +88,18 @@ export default function App() {
               {row.map((btn, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.button, btn === '=' && styles.equalButton]}
+                  style={[
+                    styles.button,
+                    btn === '=' && styles.equalButton,
+                    ['C', '⌫', '%', '÷', '×', '-', '+'].includes(btn) && styles.operatorButton
+                  ]}
                   onPress={() => handlePress(btn)}
                 >
-                  <Text style={styles.buttonText}>{btn}</Text>
+                  <Text style={[
+                    styles.buttonText,
+                    ['C', '⌫', '%', '÷', '×', '-', '+'].includes(btn) && styles.operatorButtonText,
+                    btn === '=' && styles.equalButtonText
+                  ]}>{btn}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -73,13 +112,13 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1, // La SafeAreaView prend toujours tout l'écran pour bien gérer les encoches
-    backgroundColor: '#000', // Le fond de la SafeAreaView
+    flex: 1,
+    backgroundColor: '#000',
+    marginTop: 35,
   },
   container: {
-    flex: 1, // Le conteneur interne peut prendre tout l'espace disponible ou une hauteur fixe
-    // Vous pouvez ajouter un padding si vous souhaitez des marges latérales en plus de la barre de statut
-    paddingHorizontal: 15, // Exemple de marge latérale
+    flex: 1,
+    paddingHorizontal: 15,
   },
   tabs: {
     flexDirection: 'row',
@@ -104,8 +143,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   displayText: {
-    fontSize: 36,
+    fontSize: 60,
     color: '#fff',
+    textAlign: 'right',
   },
   keyboard: {
     paddingBottom: 30,
@@ -116,17 +156,33 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   button: {
-    backgroundColor: '#111',
+    backgroundColor: '#333',
     padding: 20,
     borderRadius: 10,
-    minWidth: 60,
+    minWidth: 70,
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginHorizontal: 5,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 28,
+    fontWeight: '500',
+  },
+  operatorButton: {
+    backgroundColor: '#555',
+  },
+  operatorButtonText: {
+    color: '#0ff',
   },
   equalButton: {
     backgroundColor: '#0ff',
+    flex: 2,
+    minWidth: 150,
+  },
+  equalButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
   },
 });
